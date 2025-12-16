@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Loader, Check, AlertCircle, Music } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://camforgex.onrender.com';
 const AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
 
 interface UploadResponse {
