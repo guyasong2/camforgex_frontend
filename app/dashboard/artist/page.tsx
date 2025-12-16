@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation';
 // =========================
 // Config
 // =========================
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://camforgex.onrender.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://camforgex.onrender.com/';
 const ME_PATH = '/api/users/me/'; // Change if your backend differs
 const LOGIN_ROUTE = '/login';
 
@@ -246,7 +246,7 @@ export default function DashboardPage() {
     Object.keys(form).forEach((k) => {
       const key = k as keyof ArtistProfile;
       if (form[key] !== profile[key]) {
-        payload[key] = form[key];
+        payload[key] = form[key] as any;
       }
     });
 
