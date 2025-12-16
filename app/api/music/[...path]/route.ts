@@ -1,8 +1,9 @@
-import { cookies, headers } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { cookies, headers } from 'next/headers';
 
 const API = process.env.API_BASE_URL || 'https://camforgex.onrender.com';
 
+// Build headers for auth, cookies, CSRF
 async function buildAuthHeaders() {
   const h = new Headers();
 
@@ -20,6 +21,7 @@ async function buildAuthHeaders() {
   return h;
 }
 
+// Core proxy function
 async function proxy(req: NextRequest, path: string[]) {
   const url = new URL(req.url);
   const method = req.method.toUpperCase();
@@ -34,7 +36,7 @@ async function proxy(req: NextRequest, path: string[]) {
     // no body
   } else if (contentType.includes('multipart/form-data')) {
     const fd = await req.formData();
-    body = fd; // fetch sets boundary automatically
+    body = fd; // fetch will handle boundaries automatically
   } else if (contentType.includes('application/json')) {
     const json = await req.json();
     outHeaders.set('content-type', 'application/json');
@@ -55,26 +57,22 @@ async function proxy(req: NextRequest, path: string[]) {
     cache: 'no-store',
   });
 
-  const text = await res.text();
-  return new Response(text, {
+  const responseText = await res.text();
+  return new Response(responseText, {
     status: res.status,
     headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' },
   });
 }
 
-// ---- Route handlers ----
-export async function GET(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxy(req, context.params.path || []);
+// --- Unified handler for all HTTP methods ---
+async function handler(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const { path } = await context.params;
+  return proxy(req, path);
 }
-export async function POST(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxy(req, context.params.path || []);
-}
-export async function PATCH(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxy(req, context.params.path || []);
-}
-export async function PUT(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxy(req, context.params.path || []);
-}
-export async function DELETE(req: NextRequest, context: { params: { path: string[] } }) {
-  return proxy(req, context.params.path || []);
-}
+
+// Export all HTTP methods
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const PATCH = handler;
+export const DELETE = handler;
