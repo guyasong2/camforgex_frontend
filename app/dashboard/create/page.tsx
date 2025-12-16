@@ -1,10 +1,40 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Upload, Play, Pause, Wand2, Music2, Sparkles, Download, Share2, Volume2, Radio, Zap, RotateCcw, Settings, Waves, User, FileText, Youtube, AlertCircle, Check, Loader } from 'lucide-react';
+import {
+  Mic,
+  Upload,
+  Play,
+  Pause,
+  Wand2,
+  Music2,
+  Sparkles,
+  Download,
+  Share2,
+  Volume2,
+  Radio,
+  Zap,
+  RotateCcw,
+  Settings,
+  Waves,
+  User,
+  FileText,
+  Youtube,
+  AlertCircle,
+  Check,
+  Loader,
+} from 'lucide-react';
 
 type Step = 'input' | 'voiceClone' | 'lyrics' | 'genre' | 'processing' | 'result';
-type Genre = 'makossa' | 'bikutsi' | 'bendskin' | 'assiko' | 'mbole' | 'pop' | 'afrobeats' | 'ndombolo';
+type Genre =
+  | 'makossa'
+  | 'bikutsi'
+  | 'bendskin'
+  | 'assiko'
+  | 'mbole'
+  | 'pop'
+  | 'afrobeats'
+  | 'ndombolo';
 
 interface GenreOption {
   id: Genre;
@@ -44,15 +74,29 @@ const getOwnerId = () => {
   return userId ? parseInt(userId) : null;
 };
 
-const getAuthHeaders = () => {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-  console.log('[v0] Auth token from localStorage:', token ? 'Found' : 'Not found');
+// FIXED: always return Record<string, string>, which is compatible with HeadersInit
+const getAuthHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {};
+
+  if (typeof window === 'undefined') {
+    return headers;
+  }
+
+  const token =
+    localStorage.getItem('access_token') || localStorage.getItem('token');
+
+  console.log(
+    '[v0] Auth token from localStorage:',
+    token ? 'Found' : 'Not found'
+  );
+
   if (!token) {
     console.warn('[v0] No auth token found. User may not be logged in.');
-    return {};
+    return headers;
   }
-  return { 'Authorization': `Bearer ${token}` };
+
+  headers.Authorization = `Bearer ${token}`;
+  return headers;
 };
 
 export default function MusicCreationPage() {
@@ -71,7 +115,7 @@ export default function MusicCreationPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [finalMusicUrl, setFinalMusicUrl] = useState<string | null>(null);
   const [showShareOptions, setShowShareOptions] = useState(false);
-  
+
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,23 +127,72 @@ export default function MusicCreationPage() {
   });
   const [trackTitle, setTrackTitle] = useState('My AI Track');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const voiceInputRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const finalAudioRef = useRef<HTMLAudioElement>(null);
+  // FIXED: useRef<T | null>(null) so null is assignable
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const voiceInputRef = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const finalAudioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const genres: GenreOption[] = [
-    { id: 'makossa', name: 'Makossa', emoji: '💃', gradient: 'from-yellow-500 to-red-500', description: 'Rhythmic & danceable' },
-    { id: 'bikutsi', name: 'Bikutsi', emoji: '🥁', gradient: 'from-green-500 to-blue-500', description: 'Energetic & traditional' },
-    { id: 'bendskin', name: 'Bend-skin', emoji: '🎶', gradient: 'from-purple-500 to-pink-500', description: 'Urban & modern' },
-    { id: 'assiko', name: 'Assiko', emoji: '🎺', gradient: 'from-orange-500 to-red-600', description: 'Festive & celebratory' },
-    { id: 'mbole', name: 'Mbole', emoji: '🎵', gradient: 'from-teal-500 to-cyan-500', description: 'Traditional & cultural' },
-    { id: 'pop', name: 'Afro Pop', emoji: '🎤', gradient: 'from-pink-500 to-purple-500', description: 'Modern & catchy' },
-    { id: 'afrobeats', name: 'Afrobeats', emoji: '⚡', gradient: 'from-amber-500 to-orange-600', description: 'Trendy & rhythmic' },
-    { id: 'ndombolo', name: 'Ndombolo', emoji: '🔥', gradient: 'from-red-500 to-yellow-500', description: 'Energetic & danceable' },
+    {
+      id: 'makossa',
+      name: 'Makossa',
+      emoji: '💃',
+      gradient: 'from-yellow-500 to-red-500',
+      description: 'Rhythmic & danceable',
+    },
+    {
+      id: 'bikutsi',
+      name: 'Bikutsi',
+      emoji: '🥁',
+      gradient: 'from-green-500 to-blue-500',
+      description: 'Energetic & traditional',
+    },
+    {
+      id: 'bendskin',
+      name: 'Bend-skin',
+      emoji: '🎶',
+      gradient: 'from-purple-500 to-pink-500',
+      description: 'Urban & modern',
+    },
+    {
+      id: 'assiko',
+      name: 'Assiko',
+      emoji: '🎺',
+      gradient: 'from-orange-500 to-red-600',
+      description: 'Festive & celebratory',
+    },
+    {
+      id: 'mbole',
+      name: 'Mbole',
+      emoji: '🎵',
+      gradient: 'from-teal-500 to-cyan-500',
+      description: 'Traditional & cultural',
+    },
+    {
+      id: 'pop',
+      name: 'Afro Pop',
+      emoji: '🎤',
+      gradient: 'from-pink-500 to-purple-500',
+      description: 'Modern & catchy',
+    },
+    {
+      id: 'afrobeats',
+      name: 'Afrobeats',
+      emoji: '⚡',
+      gradient: 'from-amber-500 to-orange-600',
+      description: 'Trendy & rhythmic',
+    },
+    {
+      id: 'ndombolo',
+      name: 'Ndombolo',
+      emoji: '🔥',
+      gradient: 'from-red-500 to-yellow-500',
+      description: 'Energetic & danceable',
+    },
   ];
 
   const createTrack = async (audioFile: File): Promise<Track | null> => {
@@ -121,7 +214,7 @@ export default function MusicCreationPage() {
       formData.append('status', 'UPLOADED');
       formData.append('duration_seconds', duration.toString());
       formData.append('bpm', '120');
-      
+
       const ownerId = getOwnerId();
       if (ownerId) {
         formData.append('owner', ownerId.toString());
@@ -137,15 +230,15 @@ export default function MusicCreationPage() {
       const response = await fetch(`${API_BASE_URL}/api/music/tracks/`, {
         method: 'POST',
         body: formData,
-        headers: headers,
+        headers,
       });
 
       console.log('[v0] Create track response:', response.status, response.statusText);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.log('[v0] Error response body:', errorText);
-        
+
         if (response.status === 401) {
           setError('Session expired. Please log in again.');
           localStorage.removeItem('access_token');
@@ -153,7 +246,9 @@ export default function MusicCreationPage() {
           localStorage.removeItem('user_id');
           return null;
         }
-        throw new Error(`Failed to create track: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `Failed to create track: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
 
       const track: Track = await response.json();
@@ -161,7 +256,8 @@ export default function MusicCreationPage() {
       console.log('[v0] Track created successfully:', track);
       return track;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create track';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create track';
       setError(errorMessage);
       console.error('[v0] Error creating track:', errorMessage);
       return null;
@@ -170,7 +266,10 @@ export default function MusicCreationPage() {
     }
   };
 
-  const updateTrackWithVoiceClone = async (trackId: string, voiceFile: File): Promise<boolean> => {
+  const updateTrackWithVoiceClone = async (
+    trackId: string,
+    voiceFile: File
+  ): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -179,18 +278,23 @@ export default function MusicCreationPage() {
       formData.append('voice_clone_file', voiceFile);
 
       console.log('[v0] Updating track with voice clone:', trackId);
-      const response = await fetch(`${API_BASE_URL}/api/music/tracks/${trackId}/`, {
-        method: 'PATCH',
-        body: formData,
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/music/tracks/${trackId}/`,
+        {
+          method: 'PATCH',
+          body: formData,
+          headers: getAuthHeaders(),
+        }
+      );
 
       console.log('[v0] Voice clone response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.log('[v0] Error response:', errorText);
-        throw new Error(`Failed to update track: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to update track: ${response.status} ${response.statusText}`
+        );
       }
 
       const updatedTrack: Track = await response.json();
@@ -198,7 +302,8 @@ export default function MusicCreationPage() {
       console.log('[v0] Track updated with voice clone:', updatedTrack);
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update track';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update track';
       setError(errorMessage);
       console.error('[v0] Error updating track:', errorMessage);
       return false;
@@ -213,23 +318,28 @@ export default function MusicCreationPage() {
       setError(null);
 
       console.log('[v0] Applying finetune settings:', finetuneSettings);
-      const response = await fetch(`${API_BASE_URL}/api/music/tracks/${trackId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          finetune_settings: finetuneSettings,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/music/tracks/${trackId}/`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            finetune_settings: finetuneSettings,
+          }),
+        }
+      );
 
       console.log('[v0] Finetune response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.log('[v0] Error response:', errorText);
-        throw new Error(`Failed to apply finetune: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to apply finetune: ${response.status} ${response.statusText}`
+        );
       }
 
       const updatedTrack: Track = await response.json();
@@ -237,7 +347,8 @@ export default function MusicCreationPage() {
       console.log('[v0] Finetune settings applied:', updatedTrack);
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to apply finetune';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to apply finetune';
       setError(errorMessage);
       console.error('[v0] Error applying finetune:', errorMessage);
       return false;
@@ -249,26 +360,32 @@ export default function MusicCreationPage() {
   const fetchTrack = async (trackId: string): Promise<Track | null> => {
     try {
       console.log('[v0] Fetching track:', trackId);
-      const response = await fetch(`${API_BASE_URL}/api/music/tracks/${trackId}/`, {
-        headers: {
-          'Accept': 'application/json',
-          ...getAuthHeaders(),
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/music/tracks/${trackId}/`,
+        {
+          headers: {
+            Accept: 'application/json',
+            ...getAuthHeaders(),
+          },
+        }
+      );
 
       console.log('[v0] Fetch track response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.log('[v0] Error response:', errorText);
-        throw new Error(`Failed to fetch track: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch track: ${response.status} ${response.statusText}`
+        );
       }
 
       const track: Track = await response.json();
       console.log('[v0] Track fetched:', track);
       return track;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch track';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch track';
       console.error('[v0] Error fetching track:', errorMessage);
       return null;
     }
@@ -309,7 +426,7 @@ export default function MusicCreationPage() {
   useEffect(() => {
     if (isRecording) {
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -322,7 +439,9 @@ export default function MusicCreationPage() {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   const startRecording = async () => {
@@ -340,11 +459,13 @@ export default function MusicCreationPage() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioUrl(audioUrl);
-        
-        const file = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+
+        const file = new File([audioBlob], 'recording.wav', {
+          type: 'audio/wav',
+        });
         setUploadedFile(file);
-        
-        stream.getTracks().forEach(track => track.stop());
+
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
@@ -388,7 +509,7 @@ export default function MusicCreationPage() {
     setAiProgress(0);
 
     const interval = setInterval(() => {
-      setAiProgress(prev => {
+      setAiProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
           return 100;
@@ -404,15 +525,15 @@ export default function MusicCreationPage() {
         const pollInterval = setInterval(async () => {
           attempts++;
           const track = await fetchTrack(currentTrack.id);
-          
+
           if (track && track.status === 'completed') {
             clearInterval(pollInterval);
             clearInterval(interval);
             setAiProgress(100);
-            
+
             if (track.audio_file) {
-              const audioPath = track.audio_file.startsWith('http') 
-                ? track.audio_file 
+              const audioPath = track.audio_file.startsWith('http')
+                ? track.audio_file
                 : `${API_BASE_URL}${track.audio_file}`;
               setFinalMusicUrl(audioPath);
             }
@@ -443,7 +564,7 @@ export default function MusicCreationPage() {
             'Content-Type': 'application/json',
             ...getAuthHeaders(),
           },
-          body: JSON.stringify({ genre: selectedGenre, lyrics: lyrics }),
+          body: JSON.stringify({ genre: selectedGenre, lyrics }),
         });
       }
       setCurrentStep('voiceClone');
@@ -481,26 +602,40 @@ export default function MusicCreationPage() {
     setCurrentTrack(null);
     setError(null);
     setTrackTitle('My AI Track');
-    
+
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     if (finalMusicUrl) URL.revokeObjectURL(finalMusicUrl);
   };
 
-  const shareToPlatform = (platform: string) => {
-    const songTitle = `${trackTitle} - ${selectedGenreInfo?.name} Track`;
-    const hashtags = `AIMusic,${selectedGenreInfo?.name},CameroonMusic,${selectedGenreInfo?.name}Music`;
-    
+  const selectedGenreInfo = selectedGenre
+    ? genres.find((g) => g.id === selectedGenre)
+    : null;
+
+  const shareToPlatform = (
+    platform: 'youtube' | 'spotify' | 'tiktok' | 'instagram'
+  ) => {
+    const songTitle = `${trackTitle} - ${selectedGenreInfo?.name ?? ''} Track`;
+    const hashtags = `AIMusic,${selectedGenreInfo?.name ?? ''},CameroonMusic,${
+      selectedGenreInfo?.name ?? ''
+    }Music`;
+
     let url = '';
     switch (platform) {
       case 'youtube':
-        url = `https://www.youtube.com/upload?title=${encodeURIComponent(songTitle)}&description=${encodeURIComponent(hashtags)}`;
+        url = `https://www.youtube.com/upload?title=${encodeURIComponent(
+          songTitle
+        )}&description=${encodeURIComponent(hashtags)}`;
         window.open(url, '_blank');
         break;
       case 'spotify':
-        alert('Spotify integration would be implemented here with proper API setup');
+        alert(
+          'Spotify integration would be implemented here with proper API setup'
+        );
         break;
       case 'tiktok':
-        url = `https://www.tiktok.com/upload?description=${encodeURIComponent(songTitle + ' ' + hashtags)}`;
+        url = `https://www.tiktok.com/upload?description=${encodeURIComponent(
+          songTitle + ' ' + hashtags
+        )}`;
         window.open(url, '_blank');
         break;
       case 'instagram':
@@ -513,24 +648,23 @@ export default function MusicCreationPage() {
     if (finalMusicUrl) {
       const a = document.createElement('a');
       a.href = finalMusicUrl;
-      a.download = `${trackTitle}-${selectedGenreInfo?.name}.mp3`;
+      a.download = `${trackTitle}-${selectedGenreInfo?.name ?? 'Track'}.mp3`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     }
   };
 
-  const selectedGenreInfo = selectedGenre ? genres.find(g => g.id === selectedGenre) : null;
-
   return (
-    <div className="min-h-screen text-white p-4 md:p-8 relative overflow-hidden" style={{
-      background: 'linear-gradient(180deg, #1a1a2e 0%, #2d1b69 35%, #0f4c75 70%, #16697a 100%)'
-    }}>
-      <audio 
-        ref={audioRef} 
-        onEnded={() => setIsPlaying(false)}
-      />
-      <audio 
+    <div
+      className="min-h-screen text-white p-4 md:p-8 relative overflow-hidden"
+      style={{
+        background:
+          'linear-gradient(180deg, #1a1a2e 0%, #2d1b69 35%, #0f4c75 70%, #16697a 100%)',
+      }}
+    >
+      <audio ref={audioRef} onEnded={() => setIsPlaying(false)} />
+      <audio
         ref={finalAudioRef}
         onEnded={() => setIsPlayingFinal(false)}
       />
@@ -543,8 +677,10 @@ export default function MusicCreationPage() {
               className="w-0.5 bg-gradient-to-t from-green-400 via-cyan-400 to-purple-400"
               style={{
                 height: `${Math.random() * 100}%`,
-                animation: `pulse ${0.6 + Math.random() * 1.2}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 2}s`
+                animation: `pulse ${
+                  0.6 + Math.random() * 1.2
+                }s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 2}s`,
               }}
             />
           ))}
@@ -556,7 +692,9 @@ export default function MusicCreationPage() {
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent mb-3">
             AI Music Studio Cameroon
           </h1>
-          <p className="text-gray-300 text-lg">Transform your voice into professional Cameroonian music</p>
+          <p className="text-gray-300 text-lg">
+            Transform your voice into professional Cameroonian music
+          </p>
         </div>
 
         {error && (
@@ -566,7 +704,7 @@ export default function MusicCreationPage() {
               <p className="text-red-200 font-semibold">Error</p>
               <p className="text-red-300 text-sm">{error}</p>
             </div>
-            <button 
+            <button
               onClick={() => setError(null)}
               className="ml-auto text-red-300 hover:text-red-200"
             >
@@ -585,27 +723,46 @@ export default function MusicCreationPage() {
             { id: 'result', label: 'Your Song', icon: Music2 },
           ].map((step, index) => {
             const isActive = currentStep === step.id;
-            const isCompleted = ['input', 'voiceClone', 'lyrics', 'genre', 'processing', 'result'].indexOf(currentStep) > index;
+            const isCompleted =
+              ['input', 'voiceClone', 'lyrics', 'genre', 'processing', 'result'].indexOf(
+                currentStep
+              ) > index;
             const StepIcon = step.icon;
-            
+
             return (
               <div key={step.id} className="flex items-center">
-                <div className={`flex flex-col items-center ${index > 0 ? 'ml-4' : ''}`}>
-                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 scale-110 shadow-lg' 
-                      : isCompleted 
-                      ? 'bg-gradient-to-r from-green-500 to-teal-500' 
-                      : 'bg-slate-700/50'
-                  }`}>
+                <div
+                  className={`flex flex-col items-center ${
+                    index > 0 ? 'ml-4' : ''
+                  }`}
+                >
+                  <div
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-cyan-500 to-purple-500 scale-110 shadow-lg'
+                        : isCompleted
+                        ? 'bg-gradient-to-r from-green-500 to-teal-500'
+                        : 'bg-slate-700/50'
+                    }`}
+                  >
                     <StepIcon className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
-                  <span className={`text-xs mt-2 text-center ${isActive ? 'text-cyan-400 font-semibold' : 'text-gray-400'}`}>
+                  <span
+                    className={`text-xs mt-2 text-center ${
+                      isActive
+                        ? 'text-cyan-400 font-semibold'
+                        : 'text-gray-400'
+                    }`}
+                  >
                     {step.label}
                   </span>
                 </div>
                 {index < 5 && (
-                  <div className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 ${isCompleted ? 'bg-green-500' : 'bg-slate-700/50'}`} />
+                  <div
+                    className={`w-4 md:w-8 h-0.5 mx-1 md:mx-2 ${
+                      isCompleted ? 'bg-green-500' : 'bg-slate-700/50'
+                    }`}
+                  />
                 )}
               </div>
             );
@@ -617,7 +774,9 @@ export default function MusicCreationPage() {
             <div className="space-y-8">
               <div className="text-center">
                 <h2 className="text-3xl font-bold mb-4">Let's Get Your Audio</h2>
-                <p className="text-gray-400">Record directly or upload an existing file</p>
+                <p className="text-gray-400">
+                  Record directly or upload an existing file
+                </p>
               </div>
 
               <div className="bg-slate-800/50 rounded-2xl p-6 md:p-8 border border-white/5">
@@ -660,7 +819,9 @@ export default function MusicCreationPage() {
                     <div className="w-32 h-32 md:w-40 md:h-40 mx-auto bg-gradient-to-br from-red-500/30 to-pink-500/30 rounded-full flex items-center justify-center border-4 border-red-500/50 animate-pulse">
                       <div className="text-center">
                         <Waves className="w-8 h-8 md:w-12 md:h-12 text-red-400 mx-auto mb-2" />
-                        <div className="text-2xl md:text-3xl font-bold text-red-400">{formatTime(recordingTime)}</div>
+                        <div className="text-2xl md:text-3xl font-bold text-red-400">
+                          {formatTime(recordingTime)}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center justify-center space-x-1 h-20 md:h-24">
@@ -670,8 +831,10 @@ export default function MusicCreationPage() {
                           className="w-1 bg-gradient-to-t from-red-500 to-pink-400 rounded-full"
                           style={{
                             height: `${30 + Math.random() * 70}%`,
-                            animation: `pulse ${0.4 + Math.random() * 0.6}s ease-in-out infinite`,
-                            animationDelay: `${Math.random() * 0.4}s`
+                            animation: `pulse ${
+                              0.4 + Math.random() * 0.6
+                            }s ease-in-out infinite`,
+                            animationDelay: `${Math.random() * 0.4}s`,
                           }}
                         />
                       ))}
@@ -685,97 +848,109 @@ export default function MusicCreationPage() {
                   </div>
                 )}
 
-                {(recordingTime > 0 || uploadedFile) && !isRecording && (
-                  <div className="text-center space-y-6">
-                    <div className="w-24 h-24 md:w-32 md:h-32 mx-auto bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-full flex items-center justify-center border-4 border-green-500/30">
-                      <Music2 className="w-10 h-10 md:w-16 md:h-16 text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl md:text-2xl font-bold text-green-400 mb-2">Audio Ready!</h3>
-                      {uploadedFile ? (
-                        <p className="text-gray-400">{uploadedFile.name}</p>
-                      ) : (
-                        <p className="text-gray-400">Duration: {formatTime(recordingTime)}</p>
-                      )}
-                    </div>
+                {(recordingTime > 0 || uploadedFile) &&
+                  !isRecording && (
+                    <div className="text-center space-y-6">
+                      <div className="w-24 h-24 md:w-32 md:h-32 mx-auto bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-full flex items-center justify-center border-4 border-green-500/30">
+                        <Music2 className="w-10 h-10 md:w-16 md:h-16 text-green-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl md:text-2xl font-bold text-green-400 mb-2">
+                          Audio Ready!
+                        </h3>
+                        {uploadedFile ? (
+                          <p className="text-gray-400">{uploadedFile.name}</p>
+                        ) : (
+                          <p className="text-gray-400">
+                            Duration: {formatTime(recordingTime)}
+                          </p>
+                        )}
+                      </div>
 
-                    {audioUrl && (
-                      <div className="bg-slate-700/30 rounded-xl p-4 max-w-md mx-auto">
-                        <div className="flex items-center justify-center space-x-1 h-20 md:h-24 mb-4">
-                          {[...Array(20)].map((_, i) => (
-                            <div
-                              key={i}
-                              className={`w-1 bg-gradient-to-t from-cyan-400 to-purple-400 rounded-full transition-all ${
-                                isPlaying ? 'animate-pulse' : ''
-                              }`}
-                              style={{
-                                height: `${20 + Math.random() * 60}%`,
-                                animationDelay: `${i * 0.05}s`
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <div className="flex items-center justify-center gap-4">
-                          <button
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all"
-                          >
-                            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-                          </button>
-                          <div className="flex items-center space-x-2 text-gray-400">
-                            <Volume2 className="w-4 h-4" />
-                            <div className="w-24 h-2 bg-slate-600 rounded-full overflow-hidden">
-                              <div className="w-3/4 h-full bg-gradient-to-r from-cyan-500 to-purple-500" />
+                      {audioUrl && (
+                        <div className="bg-slate-700/30 rounded-xl p-4 max-w-md mx-auto">
+                          <div className="flex items-center justify-center space-x-1 h-20 md:h-24 mb-4">
+                            {[...Array(20)].map((_, i) => (
+                              <div
+                                key={i}
+                                className={`w-1 bg-gradient-to-t from-cyan-400 to-purple-400 rounded-full transition-all ${
+                                  isPlaying ? 'animate-pulse' : ''
+                                }`}
+                                style={{
+                                  height: `${20 + Math.random() * 60}%`,
+                                  animationDelay: `${i * 0.05}s`,
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-center gap-4">
+                            <button
+                              onClick={() => setIsPlaying(!isPlaying)}
+                              className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all"
+                            >
+                              {isPlaying ? (
+                                <Pause className="w-6 h-6" />
+                              ) : (
+                                <Play className="w-6 h-6 ml-0.5" />
+                              )}
+                            </button>
+                            <div className="flex items-center space-x-2 text-gray-400">
+                              <Volume2 className="w-4 h-4" />
+                              <div className="w-24 h-2 bg-slate-600 rounded-full overflow-hidden">
+                                <div className="w-3/4 h-full bg-gradient-to-r from-cyan-500 to-purple-500" />
+                              </div>
                             </div>
                           </div>
                         </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <label className="block text-sm text-gray-300">
+                          Track Title
+                        </label>
+                        <input
+                          type="text"
+                          value={trackTitle}
+                          onChange={(e) => setTrackTitle(e.target.value)}
+                          placeholder="Enter track title"
+                          className="w-full max-w-md mx-auto bg-slate-700/50 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        />
                       </div>
-                    )}
 
-                    <div className="space-y-3">
-                      <label className="block text-sm text-gray-300">Track Title</label>
-                      <input
-                        type="text"
-                        value={trackTitle}
-                        onChange={(e) => setTrackTitle(e.target.value)}
-                        placeholder="Enter track title"
-                        className="w-full max-w-md mx-auto bg-slate-700/50 border border-white/10 rounded-xl px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
+                      <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4">
+                        <button
+                          onClick={handleNextFromInput}
+                          disabled={isLoading}
+                          className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-cyan-500 px-6 md:px-8 py-2 md:py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader className="w-4 h-4 animate-spin" />
+                              <span>Uploading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Next: Voice Clone</span>
+                              <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRecordingTime(0);
+                            setUploadedFile(null);
+                            setAudioUrl(null);
+                            setIsPlaying(false);
+                            if (audioUrl) URL.revokeObjectURL(audioUrl);
+                          }}
+                          className="flex items-center space-x-2 bg-slate-700 px-4 md:px-6 py-2 md:py-3 rounded-xl hover:bg-slate-600 transition"
+                        >
+                          <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
+                          <span>Reset</span>
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4">
-                      <button
-                        onClick={handleNextFromInput}
-                        disabled={isLoading}
-                        className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-cyan-500 px-6 md:px-8 py-2 md:py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader className="w-4 h-4 animate-spin" />
-                            <span>Uploading...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Next: Voice Clone</span>
-                            <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRecordingTime(0);
-                          setUploadedFile(null);
-                          setAudioUrl(null);
-                          setIsPlaying(false);
-                          if (audioUrl) URL.revokeObjectURL(audioUrl);
-                        }}
-                        className="flex items-center space-x-2 bg-slate-700 px-4 md:px-6 py-2 md:py-3 rounded-xl hover:bg-slate-600 transition"
-                      >
-                        <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           )}
@@ -784,7 +959,9 @@ export default function MusicCreationPage() {
             <div className="space-y-8">
               <div className="text-center">
                 <h2 className="text-3xl font-bold mb-4">Clone Your Voice</h2>
-                <p className="text-gray-400">Upload a voice sample to create your AI voice model</p>
+                <p className="text-gray-400">
+                  Upload a voice sample to create your AI voice model
+                </p>
               </div>
 
               <div className="bg-slate-800/50 rounded-2xl p-6 md:p-8 border border-white/5">
@@ -793,13 +970,16 @@ export default function MusicCreationPage() {
                     <div className="w-24 h-24 md:w-32 md:h-32 mx-auto bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center border-4 border-purple-500/30">
                       <User className="w-10 h-10 md:w-16 md:h-16 text-purple-400" />
                     </div>
-                    
+
                     <div className="space-y-4">
-                      <h3 className="text-xl font-semibold">Upload Voice Sample</h3>
+                      <h3 className="text-xl font-semibold">
+                        Upload Voice Sample
+                      </h3>
                       <p className="text-gray-400 text-sm max-w-md mx-auto">
-                        Upload 1-2 minutes of clear speech for best results. Speak naturally in your normal voice.
+                        Upload 1-2 minutes of clear speech for best results.
+                        Speak naturally in your normal voice.
                       </p>
-                      
+
                       <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-6">
                         <button
                           onClick={() => voiceInputRef.current?.click()}
@@ -809,7 +989,7 @@ export default function MusicCreationPage() {
                           <Upload className="w-5 h-5 md:w-6 md:h-6" />
                           <span>Upload Voice Sample</span>
                         </button>
-                        
+
                         <button
                           onClick={() => setCurrentStep('lyrics')}
                           className="text-gray-400 hover:text-white transition underline"
@@ -817,7 +997,7 @@ export default function MusicCreationPage() {
                           Skip for now
                         </button>
                       </div>
-                      
+
                       <input
                         ref={voiceInputRef}
                         type="file"
@@ -829,7 +1009,9 @@ export default function MusicCreationPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-left max-w-2xl mx-auto">
                       <div className="bg-slate-700/30 p-4 rounded-xl">
-                        <h4 className="font-semibold text-green-400 mb-2">✓ Best Practices</h4>
+                        <h4 className="font-semibold text-green-400 mb-2">
+                          ✓ Best Practices
+                        </h4>
                         <ul className="text-gray-300 space-y-1">
                           <li>• Quiet environment</li>
                           <li>• Consistent volume</li>
@@ -838,7 +1020,9 @@ export default function MusicCreationPage() {
                         </ul>
                       </div>
                       <div className="bg-slate-700/30 p-4 rounded-xl">
-                        <h4 className="font-semibold text-red-400 mb-2">✗ Avoid</h4>
+                        <h4 className="font-semibold text-red-400 mb-2">
+                          ✗ Avoid
+                        </h4>
                         <ul className="text-gray-300 space-y-1">
                           <li>• Background noise</li>
                           <li>• Sudden volume changes</li>
@@ -856,7 +1040,9 @@ export default function MusicCreationPage() {
                       <Loader className="w-10 h-10 md:w-16 md:h-16 text-yellow-400 animate-spin" />
                     </div>
                     <div>
-                      <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-2">Processing Voice...</h3>
+                      <h3 className="text-xl md:text-2xl font-bold text-yellow-400 mb-2">
+                        Processing Voice...
+                      </h3>
                       <p className="text-gray-400">{voiceSample.name}</p>
                     </div>
                     <button
@@ -885,8 +1071,12 @@ export default function MusicCreationPage() {
                       <Check className="w-10 h-10 md:w-16 md:h-16 text-green-400" />
                     </div>
                     <div>
-                      <h3 className="text-xl md:text-2xl font-bold text-green-400 mb-2">Voice Cloned Successfully! 🎉</h3>
-                      <p className="text-gray-400">Your AI voice model is ready for music generation</p>
+                      <h3 className="text-xl md:text-2xl font-bold text-green-400 mb-2">
+                        Voice Cloned Successfully! 🎉
+                      </h3>
+                      <p className="text-gray-400">
+                        Your AI voice model is ready for music generation
+                      </p>
                     </div>
                     <div className="flex flex-col md:flex-row items-center justify-center gap-4">
                       <button
@@ -926,14 +1116,21 @@ export default function MusicCreationPage() {
             <div className="space-y-8">
               <div className="text-center">
                 <h2 className="text-3xl font-bold mb-4">Add Your Lyrics</h2>
-                <p className="text-gray-400">Write or paste your lyrics for the AI to sing</p>
+                <p className="text-gray-400">
+                  Write or paste your lyrics for the AI to sing
+                </p>
               </div>
 
               <div className="bg-slate-800/50 rounded-2xl p-6 md:p-8 border border-white/5">
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-3">
-                      Your Lyrics {isVoiceCloned && <span className="text-green-400">(Will be sung in your cloned voice)</span>}
+                      Your Lyrics{' '}
+                      {isVoiceCloned && (
+                        <span className="text-green-400">
+                          (Will be sung in your cloned voice)
+                        </span>
+                      )}
                     </label>
                     <textarea
                       value={lyrics}
@@ -946,10 +1143,17 @@ export default function MusicCreationPage() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="text-sm text-gray-400">
                       {lyrics.length > 0 && (
-                        <p>{lyrics.split(/\s+/).filter(word => word.length > 0).length} words</p>
+                        <p>
+                          {
+                            lyrics
+                              .split(/\s+/)
+                              .filter((word) => word.length > 0).length
+                          }{' '}
+                          words
+                        </p>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4">
                       <button
                         onClick={() => setCurrentStep('voiceClone')}
@@ -961,8 +1165,8 @@ export default function MusicCreationPage() {
                         onClick={() => setCurrentStep('genre')}
                         disabled={!lyrics.trim()}
                         className={`flex items-center space-x-2 px-6 md:px-8 py-3 rounded-xl font-semibold transition-all ${
-                          lyrics.trim() 
-                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 hover:shadow-lg hover:scale-105' 
+                          lyrics.trim()
+                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 hover:shadow-lg hover:scale-105'
                             : 'bg-slate-700 cursor-not-allowed opacity-50'
                         }`}
                       >
@@ -979,8 +1183,12 @@ export default function MusicCreationPage() {
           {currentStep === 'genre' && (
             <div className="space-y-8">
               <div className="text-center">
-                <h2 className="text-3xl font-bold mb-4">Choose Cameroonian Genre</h2>
-                <p className="text-gray-400">Select the musical style for your AI-generated track</p>
+                <h2 className="text-3xl font-bold mb-4">
+                  Choose Cameroonian Genre
+                </h2>
+                <p className="text-gray-400">
+                  Select the musical style for your AI-generated track
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -989,13 +1197,19 @@ export default function MusicCreationPage() {
                     key={genre.id}
                     onClick={() => handleGenreSelect(genre.id)}
                     disabled={isLoading}
-                    className={`group relative bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/5 hover:border-white/20 transition-all hover:scale-105 hover:shadow-xl overflow-hidden disabled:opacity-50`}
+                    className="group relative bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/5 hover:border-white/20 transition-all hover:scale-105 hover:shadow-xl overflow-hidden disabled:opacity-50"
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${genre.gradient} opacity-0 group-hover:opacity-20 transition-opacity`} />
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${genre.gradient} opacity-0 group-hover:opacity-20 transition-opacity`}
+                    />
                     <div className="relative z-10 text-center space-y-2 md:space-y-3">
                       <div className="text-3xl md:text-5xl">{genre.emoji}</div>
-                      <h3 className="text-lg md:text-xl font-bold">{genre.name}</h3>
-                      <p className="text-xs md:text-sm text-gray-400">{genre.description}</p>
+                      <h3 className="text-lg md:text-xl font-bold">
+                        {genre.name}
+                      </h3>
+                      <p className="text-xs md:text-sm text-gray-400">
+                        {genre.description}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -1015,39 +1229,62 @@ export default function MusicCreationPage() {
           {currentStep === 'processing' && selectedGenreInfo && (
             <div className="space-y-8 text-center">
               <div className="w-32 h-32 md:w-40 md:h-40 mx-auto bg-gradient-to-br from-purple-500/30 to-cyan-500/30 rounded-full flex items-center justify-center border-4 border-purple-500/50 relative">
-                <Wand2 className="w-12 h-12 md:w-20 md:h-20 text-purple-400 animate-spin" style={{ animationDuration: '3s' }} />
+                <Wand2
+                  className="w-12 h-12 md:w-20 md:h-20 text-purple-400 animate-spin"
+                  style={{ animationDuration: '3s' }}
+                />
                 <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-400 animate-spin" />
               </div>
 
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-4">AI is Creating Magic ✨</h2>
-                <p className="text-lg md:text-xl text-gray-400 mb-2">Generating your {selectedGenreInfo.name} track...</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                  AI is Creating Magic ✨
+                </h2>
+                <p className="text-lg md:text-xl text-gray-400 mb-2">
+                  Generating your {selectedGenreInfo.name} track...
+                </p>
                 {isVoiceCloned && (
-                  <p className="text-cyan-400">Using your cloned voice with your lyrics</p>
+                  <p className="text-cyan-400">
+                    Using your cloned voice with your lyrics
+                  </p>
                 )}
               </div>
 
               <div className="max-w-md mx-auto space-y-3">
                 <div className="bg-slate-800/50 rounded-full h-4 overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-purple-500 via-cyan-500 to-teal-500 transition-all duration-300"
                     style={{ width: `${aiProgress}%` }}
                   />
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-cyan-400">{Math.min(Math.round(aiProgress), 100)}%</p>
+                <p className="text-xl md:text-2xl font-bold text-cyan-400">
+                  {Math.min(Math.round(aiProgress), 100)}%
+                </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-xs md:text-sm text-gray-400">
                 {[
                   { label: 'Analyzing input', done: aiProgress > 10 },
-                  { label: isVoiceCloned ? 'Loading voice model' : 'Generating vocals', done: aiProgress > 25 },
+                  {
+                    label: isVoiceCloned
+                      ? 'Loading voice model'
+                      : 'Generating vocals',
+                    done: aiProgress > 25,
+                  },
                   { label: 'Creating melody', done: aiProgress > 40 },
                   { label: 'Adding instruments', done: aiProgress > 60 },
                   { label: 'Mixing audio', done: aiProgress > 80 },
                   { label: 'Finalizing track', done: aiProgress >= 100 },
                 ].map((stage, i) => (
-                  <div key={i} className={`flex items-center space-x-1 ${stage.done ? 'text-green-400' : ''}`}>
-                    {stage.done && <Zap className="w-3 h-3 md:w-4 md:h-4" />}
+                  <div
+                    key={i}
+                    className={`flex items-center space-x-1 ${
+                      stage.done ? 'text-green-400' : ''
+                    }`}
+                  >
+                    {stage.done && (
+                      <Zap className="w-3 h-3 md:w-4 md:h-4" />
+                    )}
                     <span>{stage.label}</span>
                   </div>
                 ))}
@@ -1061,8 +1298,12 @@ export default function MusicCreationPage() {
                 <div className="w-24 h-24 md:w-40 md:h-40 mx-auto bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-full flex items-center justify-center border-4 border-green-500/30">
                   <Sparkles className="w-12 h-12 md:w-20 md:h-20 text-yellow-400" />
                 </div>
-                <h2 className="text-2xl md:text-4xl font-bold">Your Song is Ready! 🎉</h2>
-                <div className={`inline-block px-4 md:px-6 py-1 md:py-2 rounded-full bg-gradient-to-r ${selectedGenreInfo.gradient} font-semibold`}>
+                <h2 className="text-2xl md:text-4xl font-bold">
+                  Your Song is Ready! 🎉
+                </h2>
+                <div
+                  className={`inline-block px-4 md:px-6 py-1 md:py-2 rounded-full bg-gradient-to-r ${selectedGenreInfo.gradient} font-semibold`}
+                >
                   {selectedGenreInfo.emoji} {selectedGenreInfo.name}
                 </div>
                 {isVoiceCloned && (
@@ -1080,7 +1321,7 @@ export default function MusicCreationPage() {
                       }`}
                       style={{
                         height: `${30 + Math.random() * 70}%`,
-                        animationDelay: `${i * 0.02}s`
+                        animationDelay: `${i * 0.02}s`,
                       }}
                     />
                   ))}
@@ -1091,7 +1332,11 @@ export default function MusicCreationPage() {
                     onClick={() => setIsPlayingFinal(!isPlayingFinal)}
                     className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r from-green-500 to-teal-500 rounded-full flex items-center justify-center hover:shadow-lg hover:scale-110 transition-all"
                   >
-                    {isPlayingFinal ? <Pause className="w-6 h-6 md:w-8 md:h-8" /> : <Play className="w-6 h-6 md:w-8 md:h-8 ml-0.5 md:ml-1" />}
+                    {isPlayingFinal ? (
+                      <Pause className="w-6 h-6 md:w-8 md:h-8" />
+                    ) : (
+                      <Play className="w-6 h-6 md:w-8 md:h-8 ml-0.5 md:ml-1" />
+                    )}
                   </button>
                   <div className="flex items-center space-x-2 text-gray-400">
                     <Volume2 className="w-4 h-4 md:w-5 md:h-5" />
@@ -1111,9 +1356,11 @@ export default function MusicCreationPage() {
                     <Settings className="w-4 h-4 md:w-5 md:h-5 text-cyan-400" />
                     <span>Fine-Tune Settings</span>
                   </span>
-                  <span className="text-gray-400">{showSettings ? '−' : '+'}</span>
+                  <span className="text-gray-400">
+                    {showSettings ? '−' : '+'}
+                  </span>
                 </button>
-                
+
                 {showSettings && (
                   <div className="space-y-4 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -1124,24 +1371,38 @@ export default function MusicCreationPage() {
                         { label: 'Treble', key: 'treble', min: 0, max: 100 },
                       ].map((control) => (
                         <div key={control.label}>
-                          <label className="text-sm text-gray-400 mb-2 block">{control.label}</label>
-                          <input 
-                            type="range" 
-                            min={control.min} 
-                            max={control.max} 
-                            value={finetuneSettings[control.key as keyof FinetuneSettings]}
-                            onChange={(e) => setFinetuneSettings({
-                              ...finetuneSettings,
-                              [control.key]: parseInt(e.target.value)
-                            })}
+                          <label className="text-sm text-gray-400 mb-2 block">
+                            {control.label}
+                          </label>
+                          <input
+                            type="range"
+                            min={control.min}
+                            max={control.max}
+                            value={
+                              finetuneSettings[
+                                control.key as keyof FinetuneSettings
+                              ]
+                            }
+                            onChange={(e) =>
+                              setFinetuneSettings({
+                                ...finetuneSettings,
+                                [control.key]: parseInt(e.target.value, 10),
+                              })
+                            }
                             className="w-full"
                           />
-                          <div className="text-xs text-gray-500 mt-1">{finetuneSettings[control.key as keyof FinetuneSettings]}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {
+                              finetuneSettings[
+                                control.key as keyof FinetuneSettings
+                              ]
+                            }
+                          </div>
                         </div>
                       ))}
                     </div>
                     <button
-                      onClick={() => applyFinetune(currentTrack?.id || '')}
+                      onClick={() => currentTrack && applyFinetune(currentTrack.id)}
                       disabled={isLoading || !currentTrack}
                       className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 py-2 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
                     >
@@ -1152,7 +1413,7 @@ export default function MusicCreationPage() {
               </div>
 
               <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4">
-                <button 
+                <button
                   onClick={downloadMusic}
                   className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-cyan-500 px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
                   disabled={isLoading || !finalMusicUrl}
@@ -1160,9 +1421,9 @@ export default function MusicCreationPage() {
                   <Download className="w-4 h-4 md:w-5 md:h-5" />
                   <span>Download</span>
                 </button>
-                
+
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setShowShareOptions(!showShareOptions)}
                     className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
                     disabled={isLoading || !finalMusicUrl}
@@ -1170,44 +1431,48 @@ export default function MusicCreationPage() {
                     <Share2 className="w-4 h-4 md:w-5 md:h-5" />
                     <span>Share</span>
                   </button>
-                  
+
                   {showShareOptions && (
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-800 border border-white/10 rounded-2xl p-4 shadow-2xl min-w-48">
                       <div className="grid grid-cols-2 gap-2">
-                        <button 
+                        <button
                           onClick={() => shareToPlatform('youtube')}
                           className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-slate-700 transition"
                         >
                           <Youtube className="w-6 h-6 text-red-500" />
                           <span className="text-xs">YouTube</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => shareToPlatform('spotify')}
                           className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-slate-700 transition"
                         >
                           <Music2 className="w-6 h-6 text-green-500" />
                           <span className="text-xs">Spotify</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => shareToPlatform('tiktok')}
                           className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-slate-700 transition"
                         >
-                          <div className="w-6 h-6 bg-black text-white rounded flex items-center justify-center text-xs font-bold">TK</div>
+                          <div className="w-6 h-6 bg-black text-white rounded flex items-center justify-center text-xs font-bold">
+                            TK
+                          </div>
                           <span className="text-xs">TikTok</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => shareToPlatform('instagram')}
                           className="flex flex-col items-center space-y-2 p-3 rounded-xl hover:bg-slate-700 transition"
                         >
-                          <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center text-white text-xs font-bold">IG</div>
+                          <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded flex items-center justify-center text-white text-xs font-bold">
+                            IG
+                          </div>
                           <span className="text-xs">Instagram</span>
                         </button>
                       </div>
                     </div>
                   )}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={handleReset}
                   className="flex items-center space-x-2 bg-slate-700 px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold hover:bg-slate-600 transition disabled:opacity-50"
                   disabled={isLoading}
@@ -1223,10 +1488,17 @@ export default function MusicCreationPage() {
 
       <style jsx>{`
         @keyframes pulse {
-          0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
-          50% { transform: scaleY(1); opacity: 1; }
+          0%,
+          100% {
+            transform: scaleY(0.4);
+            opacity: 0.6;
+          }
+          50% {
+            transform: scaleY(1);
+            opacity: 1;
+          }
         }
-        input[type="range"] {
+        input[type='range'] {
           -webkit-appearance: none;
           appearance: none;
           height: 6px;
@@ -1234,7 +1506,7 @@ export default function MusicCreationPage() {
           background: linear-gradient(to right, #06b6d4, #8b5cf6);
           outline: none;
         }
-        input[type="range"]::-webkit-slider-thumb {
+        input[type='range']::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
           width: 18px;
@@ -1244,7 +1516,7 @@ export default function MusicCreationPage() {
           cursor: pointer;
           box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
         }
-        input[type="range"]::-moz-range-thumb {
+        input[type='range']::-moz-range-thumb {
           width: 18px;
           height: 18px;
           border-radius: 50%;
