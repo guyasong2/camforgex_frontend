@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, Plus, Zap, TrendingUp, Users, DollarSign } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://camforgex.onrender.com';
 const CHALLENGES_URL = `${API_BASE}/api/challenges/`;
 
 type TabType = 'browse' | 'create' | 'my-challenges';
